@@ -163,6 +163,7 @@ export const insertDonorSchema = createInsertSchema(donors).omit({
   latitude: z.coerce.number().min(-90).max(90),
   longitude: z.coerce.number().min(-180).max(180),
   weight: z.coerce.number().min(30).max(200),
+  lastDonationDate: z.coerce.date().nullable().optional(),
 });
 
 export const insertBloodRequestSchema = createInsertSchema(bloodRequests).omit({

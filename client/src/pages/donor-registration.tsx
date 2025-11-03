@@ -20,7 +20,15 @@ import { insertDonorSchema } from "@shared/schema";
 import { z } from "zod";
 import type { Donor } from "@shared/schema";
 
-const donorFormSchema = insertDonorSchema.extend({
+const donorFormSchema = insertDonorSchema.omit({
+  id: true,
+  credits: true,
+  totalDonations: true,
+  createdAt: true,
+  updatedAt: true,
+  userId: true, // Omit userId as it will be added from the session
+}).extend({
+  lastDonationDate: z.date().optional().nullable(),
   termsAccepted: z.boolean().refine(val => val === true, {
     message: "You must accept the terms and conditions"
   })
@@ -31,7 +39,7 @@ type DonorFormData = z.infer<typeof donorFormSchema>;
 export default function DonorRegistration() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth(); // Add user here
   const queryClient = useQueryClient();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
@@ -74,8 +82,15 @@ export default function DonorRegistration() {
 
   const createDonorMutation = useMutation({
     mutationFn: async (data: Omit<DonorFormData, 'termsAccepted'>) => {
-      const response = await apiRequest('POST', '/api/donors', data);
-      return await response.json();
+      console.log("Submitting form data:", data);
+      try {
+        const response = await apiRequest('POST', '/api/donors', data);
+        console.log("API response:", response);
+        return await response.json();
+      } catch (error) {
+        console.error("API request error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -86,6 +101,7 @@ export default function DonorRegistration() {
       setLocation("/");
     },
     onError: (error) => {
+      console.error("Mutation error:", error);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -159,8 +175,42 @@ export default function DonorRegistration() {
   };
 
   const onSubmit = (data: DonorFormData) => {
-    const { termsAccepted, ...donorData } = data;
-    createDonorMutation.mutate(donorData);
+    console.log("Form submitted with data:", data);
+    // Add form validation check
+    const formState = form.getValues();
+    console.log("Form state:", formState);
+    console.log("Form errors:", form.formState.errors);
+    console.log("Form is valid:", form.formState.isValid);
+    
+    try {
+      const { termsAccepted, ...donorData } = data;
+      
+      // Create a proper Date object from the string date
+      const processedData = {
+        ...donorData,
+        // Force the date to be a proper Date object, not a string
+        lastDonationDate: donorData.lastDonationDate ? new Date(donorData.lastDonationDate) : null,
+        userId: user?.id || 'local-dev-user' // Use the authenticated user ID or fallback to dev user
+      };
+      
+      console.log("Donor data being sent to API:", processedData);
+      
+      // Create a new object with the date properly formatted for the API
+      const apiData = {
+        ...processedData,
+        // Ensure lastDonationDate is sent as a Date object, not serialized to string
+        lastDonationDate: processedData.lastDonationDate
+      };
+      
+      createDonorMutation.mutate(apiData);
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      toast({
+        title: "Form Submission Error",
+        description: "There was an error submitting the form. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading || donorLoading) {
@@ -410,6 +460,14 @@ export default function DonorRegistration() {
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
                   disabled={createDonorMutation.isPending}
                   data-testid="button-submit"
+                  onClick={() => {
+                    console.log("Submit button clicked");
+                    console.log("Form state:", form.getValues());
+                    console.log("Form is valid:", form.formState.isValid);
+                    if (!form.formState.isValid) {
+                      console.log("Form validation errors:", form.formState.errors);
+                    }
+                  }}
                 >
                   {createDonorMutation.isPending ? "Creating Profile..." : "Complete Registration"}
                 </Button>
@@ -420,4 +478,12 @@ export default function DonorRegistration() {
       </div>
     </div>
   );
+  // Add this right before the return statement in the component
+  console.log("Form state:", {
+    isValid: form.formState.isValid,
+    errors: form.formState.errors,
+    isDirty: form.formState.isDirty,
+    isSubmitting: form.formState.isSubmitting,
+    isSubmitted: form.formState.isSubmitted,
+  });
 }

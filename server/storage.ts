@@ -72,14 +72,22 @@ export class DatabaseStorage implements IStorage {
 
   // Donor operations
   async createDonor(donor: InsertDonor): Promise<Donor> {
-    const donorData = {
-      ...donor,
-      latitude: donor.latitude.toString(),
-      longitude: donor.longitude.toString(),
-      weight: donor.weight.toString(),
-    };
-    const [newDonor] = await db.insert(donors).values(donorData).returning();
-    return newDonor;
+    try {
+      console.log("Creating donor with data:", donor);
+      const donorData = {
+        ...donor,
+        latitude: donor.latitude.toString(),
+        longitude: donor.longitude.toString(),
+        weight: donor.weight.toString(),
+      };
+      console.log("Transformed donor data:", donorData);
+      const [newDonor] = await db.insert(donors).values(donorData).returning();
+      console.log("New donor created:", newDonor);
+      return newDonor;
+    } catch (error) {
+      console.error("Database error creating donor:", error);
+      throw error;
+    }
   }
 
   async getDonor(id: string): Promise<Donor | undefined> {

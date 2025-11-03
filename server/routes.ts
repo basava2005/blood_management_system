@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+// Import from localAuth instead of replitAuth
+import { setupAuth, isAuthenticated } from "./localAuth";
 import { insertDonorSchema, insertBloodRequestSchema, insertDonationSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -24,20 +25,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Donor routes
   app.post('/api/donors', isAuthenticated, async (req: any, res) => {
     try {
+      console.log("Received donor registration request:", req.body);
       const userId = req.user.claims.sub;
-      const donorData = insertDonorSchema.parse({ ...req.body, userId });
+      console.log("User ID:", userId);
       
-      // Check if user is already a donor
-      const existingDonor = await storage.getDonorByUserId(userId);
-      if (existingDonor) {
-        return res.status(400).json({ message: "User is already registered as a donor" });
-      }
+      try {
+        // Pre-process the request body to handle the date properly
+        const processedBody = { ...req.body };
+        
+        // Convert lastDonationDate string to Date object if it exists
+        if (processedBody.lastDonationDate) {
+          try {
+            processedBody.lastDonationDate = new Date(processedBody.lastDonationDate);
+          } catch (e) {
+            console.error("Error converting date:", e);
+            processedBody.lastDonationDate = null;
+          }
+        }
+        
+        const donorData = insertDonorSchema.parse({ ...processedBody, userId });
+        console.log("Validated donor data:", donorData);
+        
+        // Check if user is already a donor
+        const existingDonor = await storage.getDonorByUserId(userId);
+        if (existingDonor) {
+          console.log("User is already a donor:", existingDonor);
+          return res.status(400).json({ message: "User is already registered as a donor" });
+        }
 
-      const donor = await storage.createDonor(donorData);
-      res.json(donor);
+        const donor = await storage.createDonor(donorData);
+        console.log("Donor created successfully:", donor);
+        res.json(donor);
+      } catch (validationError) {
+        console.error("Validation error:", validationError);
+        return res.status(400).json({ message: "Invalid donor data", error: validationError });
+      }
     } catch (error) {
       console.error("Error creating donor:", error);
-      res.status(400).json({ message: "Failed to create donor profile" });
+      res.status(500).json({ message: "Failed to create donor profile" });
     }
   });
 
