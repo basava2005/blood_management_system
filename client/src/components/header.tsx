@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
-import { Heart, Bell, User, LogOut, Menu, X } from "lucide-react";
+import { Heart, Bell, User, LogOut, Menu, X, Sun, Moon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,9 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTheme } from "next-themes";
 
 export default function Header() {
   const { user, isAuthenticated } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -55,14 +57,25 @@ export default function Header() {
                 <nav className="flex items-center space-x-6">
                   <NavLink href="/" label="Dashboard" />
                   <NavLink href="/find-donors" label="Find Donors" />
-                  <NavLink
-                    href="/register-donor"
-                    label="Become a Donor"
-                  />
+                  <NavLink href="/register-donor" label="Become a Donor" />
                 </nav>
 
+                {/* Notifications */}
                 <Button variant="ghost" size="sm">
                   <Bell size={18} />
+                </Button>
+
+                {/* Dark Mode Toggle */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                >
+                  {theme === "dark" ? (
+                    <Sun size={18} className="text-yellow-500" />
+                  ) : (
+                    <Moon size={18} className="text-blue-600" />
+                  )}
                 </Button>
 
                 {/* User Menu */}
@@ -84,6 +97,7 @@ export default function Header() {
                         <User size={16} className="mr-2" /> Profile
                       </Link>
                     </DropdownMenuItem>
+
                     <DropdownMenuItem asChild>
                       <a href="/api/logout">
                         <LogOut size={16} className="mr-2" /> Logout
@@ -111,6 +125,25 @@ export default function Header() {
         {/* Mobile Nav Drawer */}
         {mobileOpen && (
           <div className="md:hidden flex flex-col space-y-3 pb-4 animate-in fade-in slide-in-from-top-2">
+
+            {/* Dark mode toggle for mobile */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? (
+                <>
+                  <Sun size={16} className="mr-2 text-yellow-500" /> Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon size={16} className="mr-2 text-blue-600" /> Dark Mode
+                </>
+              )}
+            </Button>
+
             {isAuthenticated ? (
               <>
                 <NavLink href="/" label="Dashboard" />
@@ -118,7 +151,7 @@ export default function Header() {
                 <NavLink href="/register-donor" label="Become a Donor" />
 
                 <Button variant="ghost" size="sm" className="w-fit">
-                  <Bell size={18} /> Notifications
+                  <Bell size={18} className="mr-1" /> Notifications
                 </Button>
 
                 <Link href="/profile">
@@ -126,6 +159,7 @@ export default function Header() {
                     <User size={16} className="mr-2" /> Profile
                   </Button>
                 </Link>
+
                 <a href="/api/logout">
                   <Button variant="destructive" size="sm" className="w-full">
                     <LogOut size={16} className="mr-2" /> Logout
