@@ -13,6 +13,7 @@ import {
   Eye,
   CheckCircle,
   Loader2,
+  Share2,
 } from "lucide-react";
 import type { Donor } from "@shared/schema";
 
@@ -64,6 +65,29 @@ Location: ${locationText}
 
 Please respond urgently if you can help. 🙏`;
   }, [donor.bloodGroup, emHospital, emNote, locationText]);
+
+  // ---------- SHARE MESSAGE ----------
+  const shareMessage = useMemo(() => {
+    return `Hey, this donor might help your case — check this:\n
+Name: ${donor.fullName}
+Blood Group: ${donor.bloodGroup}
+Distance: ${distance.toFixed(1)} km away
+Total Donations: ${donor.totalDonations}
+
+You can contact them on PulseConnect.`;
+  }, [donor, distance]);
+
+  const handleShareDonor = () => {
+    const encodedMessage = encodeURIComponent(shareMessage);
+    const url = `https://wa.me/?text=${encodedMessage}`;
+
+    window.open(url, "_blank");
+
+    toast({
+      title: "Shared",
+      description: "Donor details shared via WhatsApp.",
+    });
+  };
 
   // ---------- Donation Time Helper ----------
   const calculateTimeSinceLastDonation = (date: string | null) => {
@@ -186,6 +210,7 @@ Please respond urgently if you can help. 🙏`;
 
         {/* Action Buttons */}
         <div className="flex gap-2">
+          {/* CONTACT */}
           <Button
             size="sm"
             className="flex-1"
@@ -203,8 +228,21 @@ Please respond urgently if you can help. 🙏`;
             {contactDonorMutation.isPending ? "Opening..." : "Contact"}
           </Button>
 
+          {/* VIEW */}
           <Button size="sm" variant="outline" onClick={(e) => e.stopPropagation()}>
             <Eye size={14} />
+          </Button>
+
+          {/* SHARE */}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShareDonor();
+            }}
+          >
+            <Share2 size={14} />
           </Button>
         </div>
 
