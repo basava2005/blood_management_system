@@ -144,14 +144,23 @@ export default function DonorRegistration() {
         form.setValue("longitude", lon);
         
         try {
-          const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}`);
-          if (response.ok) {
-            const data = await response.json();
-            const address = data.results?.[0]?.formatted_address;
-            form.setValue("address", address || `${lat.toFixed(6)}, ${lon.toFixed(6)}`);
-          } else {
-            form.setValue("address", `${lat.toFixed(6)}, ${lon.toFixed(6)}`);
+          let address: string | null = null;
+          if (apiKey) {
+            const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}&language=en`);
+            if (response.ok) {
+              const data = await response.json();
+              address = data.results?.[0]?.formatted_address || null;
+            }
           }
+          if (!address) {
+            const osm = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&namedetails=1&accept-language=en`);
+            if (osm.ok) {
+              const j = await osm.json();
+              const a = j.address || {};
+              address = (j.namedetails && j.namedetails['name:en']) || j.display_name || [a.road, a.neighbourhood, a.city || a.town || a.village, a.state, a.country].filter(Boolean).join(', ') || null;
+            }
+          }
+          form.setValue("address", address || `${lat.toFixed(6)}, ${lon.toFixed(6)}`);
         } catch {
           form.setValue("address", `${lat.toFixed(6)}, ${lon.toFixed(6)}`);
         } finally {
