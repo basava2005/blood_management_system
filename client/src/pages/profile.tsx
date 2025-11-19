@@ -203,6 +203,23 @@ export default function Profile() {
       return;
     }
 
+    try {
+      if ("permissions" in navigator) {
+        const p = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+        if (p.state === "denied") {
+          toast({
+            title: "Error",
+            description: "Location permission is blocked. Enable it in browser settings.",
+            variant: "destructive",
+          });
+          setIsGettingLocation(false);
+          return;
+        }
+      }
+    } catch {}
+
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         form.setValue("latitude", position.coords.latitude);
