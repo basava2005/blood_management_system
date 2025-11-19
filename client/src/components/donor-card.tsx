@@ -20,14 +20,13 @@ interface DonorCardProps {
   donor: Donor & { distance: number };
   distance: number;
   isSelected?: boolean;
-  onSelect?: () => void;
+  onSelect?: (donor: Donor) => void;  // <-- ensure donor is passed
 }
 
 export default function DonorCard({ donor, distance, isSelected = false, onSelect }: DonorCardProps) {
   const { toast } = useToast();
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
 
-  // ---------- Improved Helpers ----------
   const messagePreview = useMemo(
     () =>
       `Hello! I found your profile on PulseConnect and I'm looking for ${donor.bloodGroup} blood. Could you please help? Thank you!`,
@@ -54,13 +53,12 @@ export default function DonorCard({ donor, distance, isSelected = false, onSelec
     const lastDonation = new Date(donor.lastDonationDate);
 
     return lastDonation <= sixMonthsAgo
-      ? { text: "Available", variant: "default" as const }
-      : { text: "Recently Donated", variant: "outline" as const };
+      ? { text: "Available", variant: "default" }
+      : { text: "Recently Donated", variant: "outline" };
   }, [donor]);
 
   const isVerifiedDonor = donor.totalDonations >= 5;
 
-  // ---------- Contact Mutation ----------
   const contactDonorMutation = useMutation({
     mutationFn: async (donorId: string) => {
       const response = await apiRequest("POST", "/api/whatsapp/contact", {
@@ -88,20 +86,17 @@ export default function DonorCard({ donor, distance, isSelected = false, onSelec
       className={`shadow-sm hover:shadow-lg transition-all cursor-pointer rounded-xl ${
         isSelected ? "ring-2 ring-primary border-primary" : "border-border"
       }`}
-      onClick={onSelect}
+      onClick={() => onSelect?.(donor)}   // <-- FIXED: pass donor to parent
     >
       <CardContent className="p-4">
+        
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center space-x-3">
             
-            {/* BLOOD GROUP + HEART ANIMATION */}
             <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center relative">
               <Heart size={20} className="absolute left-1 top-1 text-red-500 animate-bounce-slow" />
-              <span
-                className="text-secondary font-bold relative z-10"
-                data-testid={`text-blood-group-${donor.id}`}
-              >
+              <span className="text-secondary font-bold relative z-10">
                 {donor.bloodGroup}
               </span>
             </div>
@@ -199,6 +194,7 @@ export default function DonorCard({ donor, distance, isSelected = false, onSelec
             </div>
           </DialogContent>
         </Dialog>
+
       </CardContent>
     </Card>
   );
