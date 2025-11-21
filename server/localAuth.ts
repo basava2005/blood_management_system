@@ -81,16 +81,8 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  // Auto-login with mock user if not authenticated
   if (!req.isAuthenticated()) {
-    req.login(mockUser, (err) => {
-      if (err) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      return next();
-    });
-    return;
+    return res.status(401).json({ message: "Unauthorized" });
   }
-
   return next();
 };
