@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar as DatePicker } from "@/components/ui/calendar";
 import { Heart, User, Calendar, Award, MapPin, Phone, Edit, Save, X } from "lucide-react";
 import { Link } from "wouter";
 import { insertDonorSchema } from "@shared/schema";
@@ -496,6 +498,35 @@ export default function Profile() {
                                     ) : (
                                       <MapPin size={16} />
                                     )}
+                                  </Button>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="lastDonationDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Last Donation Date</FormLabel>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" type="button">
+                                      {field.value ? new Date(field.value).toLocaleDateString() : "Pick a date"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="start" className="w-auto p-0">
+                                    <DatePicker
+                                      mode="single"
+                                      selected={field.value ?? undefined}
+                                      onSelect={(date) => field.onChange(date ?? null)}
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                                <div className="flex gap-2 mt-2">
+                                  <Button type="button" variant="ghost" size="sm" onClick={() => field.onChange(null)}>
+                                    Clear
                                   </Button>
                                 </div>
                                 <FormMessage />
