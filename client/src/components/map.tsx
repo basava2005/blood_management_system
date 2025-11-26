@@ -97,11 +97,27 @@ export default function InteractiveMap({
   // AUTO-RESOLVE CENTER (city name → lat/lng or number array)
   useEffect(() => {
     async function resolve() {
+      // Helper to normalize lat/lng pairs defensively
+      const normalizeLatLng = (pair: [number, number]): [number, number] => {
+        let [lat, lng] = [Number(pair[0]), Number(pair[1])];
+        // If clearly swapped (first looks like lng), correct it
+        if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) {
+          const swapped: [number, number] = [lng, lat];
+          console.warn("Swapped lat/lng pair:", pair, "→", swapped);
+          return swapped;
+        }
+        // If valid lat/lng, keep as is; otherwise try swap
+        if ((Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) return [lat, lng];
+        const swapped: [number, number] = [lng, lat];
+        console.warn("Normalized invalid lat/lng pair:", pair, "→", swapped);
+        return swapped;
+      };
+
       if (typeof center === "string") {
         const c = await geocodeCity(center);
-        if (c) setResolvedCenter([c.lat, c.lng]);
+        if (c) setResolvedCenter(normalizeLatLng([c.lat, c.lng]));
       } else if (Array.isArray(center)) {
-        setResolvedCenter([Number(center[0]), Number(center[1])]);
+        setResolvedCenter(normalizeLatLng([Number(center[0]), Number(center[1])]));
       }
     }
     resolve();
@@ -111,6 +127,7 @@ export default function InteractiveMap({
 
   return (
     <GoogleMap
+      key={`${resolvedCenter[0]}-${resolvedCenter[1]}`}  // force recenter on coord change
       mapContainerStyle={mapContainerStyle}
       zoom={13}
       center={{ lat: resolvedCenter[0], lng: resolvedCenter[1] }}
@@ -133,9 +150,16 @@ export default function InteractiveMap({
 
       {/* DONOR MARKERS WITH ANIMATION */}
       {donors.map((donor) => {
-        const lat = Number(donor.latitude);
-        const lng = Number(donor.longitude);
+        let lat = Number(donor.latitude);
+        let lng = Number(donor.longitude);
         if (isNaN(lat) || isNaN(lng)) return null;
+
+        // Normalize donor coordinates defensively
+        if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) {
+          const original = [lat, lng];
+          [lat, lng] = [lng, lat];
+          console.warn("Swapped donor lat/lng:", original, "→", [lat, lng], "for donor", donor.id);
+        }
 
         const isSelected = selectedDonor?.id === donor.id;
 
