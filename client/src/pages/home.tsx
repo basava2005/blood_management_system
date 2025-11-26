@@ -18,9 +18,8 @@ import {
   Sparkles,
   Shield,
 } from "lucide-react";
-
 import { motion } from "framer-motion";
-import type { Donor, Donation } from "@shared/schema";
+import type { Donor, Donation, BloodRequest, RequestResponse } from "@shared/schema";
 
 /* -------------------------------------------------------------------------- */
 /*                                 ANIMATIONS                                 */
@@ -84,36 +83,6 @@ export default function Home() {
     enabled: !!donor,
   });
 
-  /* -------------------------------------------------------------------------- */
-  /*                               LOADING SCREEN                               */
-  /* -------------------------------------------------------------------------- */
-
-  if (isLoading || donorLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 flex flex-col">
-        <Header />
-        <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="relative">
-              <div className="h-12 w-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
-              <Heart className="h-6 w-6 text-primary absolute inset-0 m-auto" />
-            </div>
-            <p className="text-primary text-lg font-semibold tracking-wide">
-              Preparing your dashboard…
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Fetching your donor profile and activity
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* -------------------------------------------------------------------------- */
-  /*                               MAIN DASHBOARD                               */
-  /* -------------------------------------------------------------------------- */
-
   // NEW: Fetch active requests (for donors to respond)
   const { data: activeRequests = [] } = useQuery<BloodRequest[]>({
     queryKey: ["/api/blood-requests"],
@@ -149,22 +118,40 @@ export default function Home() {
   });
 
   useEffect(() => {
-    // Simple in-memory dedup across reloads; could persist if needed
     const seenKey = "__seen_response_ids__";
     const seen = new Set<string>(JSON.parse(sessionStorage.getItem(seenKey) || "[]"));
     myResponses.forEach((resp) => {
       if (!seen.has(resp.id)) {
         toast({
           title: `Donor ${resp.status === "accepted" ? "accepted" : "rejected"}`,
-          description: resp.status === "accepted"
-            ? "A donor accepted your blood request."
-            : "A donor declined your blood request.",
+          description:
+            resp.status === "accepted"
+              ? "A donor accepted your blood request."
+              : "A donor declined your blood request.",
         });
         seen.add(resp.id);
       }
     });
     sessionStorage.setItem(seenKey, JSON.stringify([...seen]));
   }, [myResponses, toast]);
+
+  // EARLY RETURN AFTER all hooks are declared
+  if (isLoading || donorLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <div className="flex items-center justify-center flex-1">
+          <div className="animate-pulse text-primary text-3xl font-semibold">
+            Loading…
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                               MAIN DASHBOARD                               */
+  /* -------------------------------------------------------------------------- */
 
   if (isLoading || donorLoading) {
     return (

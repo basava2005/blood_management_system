@@ -156,6 +156,20 @@ export default function FindDonors() {
     enabled: !!searchParams,
   });
 
+  useEffect(() => {
+    // Restore last known location on page load
+    try {
+      const saved = sessionStorage.getItem("__last_location__");
+      if (saved) {
+        const { lat, lng, address } = JSON.parse(saved);
+        form.setValue("latitude", lat);
+        form.setValue("longitude", lng);
+        form.setValue("address", address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        setSearchParams(form.getValues());
+      }
+    } catch {}
+  }, []);
+
   const getCurrentLocation = async () => {
     setIsGettingLocation(true);
     
@@ -202,7 +216,11 @@ export default function FindDonors() {
           .catch(() => {
             form.setValue("address", `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`);
           })
-          .finally(() => setIsGettingLocation(false));
+          .finally(() => {
+            setIsGettingLocation(false);
+            // Immediately update search params so map centers without needing another submit
+            setSearchParams(form.getValues());
+          });
 
         toast({
           title: "Success",
@@ -257,7 +275,14 @@ export default function FindDonors() {
           }
           form.setValue("address", addr || `${lat.toFixed(6)}, ${lon.toFixed(6)}`);
         } catch {}
-        setSearchParams(form.getValues());
+        // Save and apply immediately
+        const vals = form.getValues();
+        sessionStorage.setItem("__last_location__", JSON.stringify({
+          lat: vals.latitude,
+          lng: vals.longitude,
+          address: vals.address
+        }));
+        setSearchParams(vals);
       },
       () => {
         toast({ title: "Error", description: "Failed to get live location", variant: "destructive" });
